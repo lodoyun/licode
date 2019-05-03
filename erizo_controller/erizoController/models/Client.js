@@ -22,7 +22,7 @@ class Client extends events.EventEmitter {
     this.options = options;
     this.socketEventListeners = new Map();
     this.listenToSocketEvents();
-    this.user = { name: token.userName, role: token.role, permissions: {} };
+    this.user = {name: token.userName, role: token.role, permissions: {}, recordings: {}};
     const permissions = global.config.erizoController.roles[token.role] || {};
     Object.keys(permissions).forEach((right) => {
       this.user.permissions[right] = permissions[right];
@@ -161,14 +161,10 @@ class Client extends events.EventEmitter {
     const id = Math.floor(100000000000000000 + (Math.random() * 900000000000000000));
 
     if (options.state === 'url' || options.state === 'recording') {
-      let url = sdp;
-      if (options.state === 'recording') {
-        const recordingId = sdp;
-        if (global.config.erizoController.recording_path) {
-          url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
-        } else {
-          url = `/tmp/${recordingId}.mkv`;
-        }
+        let url = sdp;
+        if (options.state === 'recording') {
+            const recordingId = sdp;
+            url = this.user.recordings[recordingId];
       }
       this.room.controller.addExternalInput(id, url, (result) => {
         if (result === 'success') {
@@ -361,15 +357,20 @@ class Client extends events.EventEmitter {
       callback(null, 'Unauthorized');
       return;
     }
+    const extension = options.extension || 'mkv';
     const streamId = options.to;
     const recordingId = Math.random() * 1000000000000000000;
     let url;
 
-    if (global.config.erizoController.recording_path) {
-      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
+    if (options.url !== null && options.url !== undefined) {
+      url = options.url.replace('{RECORDING_ID}', recordingId);
+    } else if (global.config.erizoController.recording_path) {
+      url = `${global.config.erizoController.recording_path}${recordingId}.${extension}`;
     } else {
       url = `/tmp/${recordingId}.mkv`;
     }
+
+    this.user.recordings[recordingId] = url;
 
     log.info('message: startRecorder, ' +
              'state: RECORD_REQUESTED, ' +
@@ -415,13 +416,7 @@ class Client extends events.EventEmitter {
       return;
     }
     const recordingId = options.id;
-    let url;
-
-    if (global.config.erizoController.recording_path) {
-      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
-    } else {
-      url = `/tmp/${recordingId}.mkv`;
-    }
+    const url = this.user.recordings[recordingId];
 
     log.info('message: startRecorder, ' +
              'state: RECORD_STOPPED, ' +
