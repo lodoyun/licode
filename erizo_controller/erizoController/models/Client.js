@@ -22,7 +22,7 @@ class Client extends events.EventEmitter {
     this.options = options;
     this.socketEventListeners = new Map();
     this.listenToSocketEvents();
-    this.user = {name: token.userName, role: token.role, permissions: {}, recordings: {}};
+    this.user = { name: token.userName, role: token.role, permissions: {}, recordings: {} };
     const permissions = global.config.erizoController.roles[token.role] || {};
     Object.keys(permissions).forEach((right) => {
       this.user.permissions[right] = permissions[right];
@@ -161,10 +161,10 @@ class Client extends events.EventEmitter {
     const id = Math.floor(100000000000000000 + (Math.random() * 900000000000000000));
 
     if (options.state === 'url' || options.state === 'recording') {
-        let url = sdp;
-        if (options.state === 'recording') {
-            const recordingId = sdp;
-            url = this.user.recordings[recordingId];
+      let url = sdp;
+      if (options.state === 'recording') {
+        const recordingId = sdp;
+        url = this.user.recordings[recordingId];
       }
       this.room.controller.addExternalInput(id, url, (result) => {
         if (result === 'success') {
